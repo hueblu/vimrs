@@ -51,4 +51,12 @@ impl TextBuffer {
     pub fn chunks(&self) -> Chunks {
         self.text.chunks()
     }
+
+    pub fn char_to_line(&self, char_idx: u16) -> u16 {
+        self.text.char_to_line(char_idx as usize) as u16
+    }
+
+    pub fn line_to_char(&self, line_idx: u16) -> u16 {
+        self.text.line_to_char(line_idx as usize) as u16
+    }
 }
