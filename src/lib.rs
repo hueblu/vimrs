@@ -1,3 +1,4 @@
+//! editor
 mod editor;
 mod text_buffer;
 
