@@ -59,4 +59,8 @@ impl TextBuffer {
     pub fn line_to_char(&self, line_idx: u16) -> u16 {
         self.text.line_to_char(line_idx as usize) as u16
     }
+
+    pub fn line(&self, line_idx: usize) -> RopeSlice<'_> {
+        self.line(line_idx)
+    }
 }

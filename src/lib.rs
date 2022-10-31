@@ -1,4 +1,3 @@
-//!
 mod editor;
 mod text_buffer;
 
@@ -86,10 +85,10 @@ where
                     if let KeyCode::Char(c) = key.code {
                         match c {
                             ':' => self.mode = Mode::EnteringCommand(String::new()),
-                            'h' => self.editor.move_position(-1, 0)?,
-                            'l' => self.cursor.move_position(1, 0)?,
-                            'j' => self.cursor.move_position(0, 1)?,
-                            'k' => self.cursor.move_position(0, -1)?,
+                            'h' => self.editor.move_cursor(-1, 0)?,
+                            'l' => self.editor.move_cursor(1, 0)?,
+                            'j' => self.editor.move_cursor(0, 1)?,
+                            'k' => self.editor.move_cursor(0, -1)?,
                             'q' => self.close = true,
                             _ => {}
                         }

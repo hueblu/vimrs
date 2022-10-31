@@ -48,6 +48,10 @@ impl<'a> Editor<'a> {
         self.window_size = new_size;
     }
 
+    fn get_cursor_line_idx(&self) -> u16 {
+        self.current_buffer.char_to_line(self.cursor.index)
+    }
+
     pub fn get_cursor_pos(&self) -> (u16, u16) {
         let line = self.current_buffer.char_to_line(self.cursor.index);
 
@@ -55,6 +59,29 @@ impl<'a> Editor<'a> {
             self.cursor.index - self.current_buffer.line_to_char(line),
             line - self.offset,
         )
+    }
+
+    pub fn move_cursor(&mut self, x: i16, y: i16) -> Result<()> {
+        let line = self.get_cursor_line_idx();
+        let char_offset = self.cursor.index - self.current_buffer.line_to_char(line);
+        let line_length = self
+            .current_buffer
+            .line(line.saturating_add_signed(y) as usize);
+
+        if y != 0 {
+            self.cursor.index = self
+                .current_buffer
+                .line_to_char(line.saturating_add_signed(y))
+                + char_offset;
+        }
+
+        self.cursor.index = self.cursor.index.saturating_add_signed(x);
+        let line_length = self
+            .current_buffer
+            .line(line.saturating_add_signed(y) as usize)
+            .len_chars();
+
+        Ok(())
     }
 }
 
