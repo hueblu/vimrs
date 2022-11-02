@@ -8,10 +8,7 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode},
     execute, queue, style,
-    terminal::{
-        self, disable_raw_mode, enable_raw_mode, size, ClearType, EnterAlternateScreen,
-        LeaveAlternateScreen,
-    },
+    terminal::{self, size, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     Result,
 };
 
@@ -26,7 +23,7 @@ use crossterm::{
 /// [`run`]: App::run
 pub struct App<'w, W> {
     close: bool,
-    editor: Editor<'w>,
+    editor: Editor,
     mode: Mode,
     context: Context,
     out: &'w mut W,
@@ -43,7 +40,7 @@ where
 
         Ok(App {
             close: false,
-            editor: Editor::new(size.1 - 1)?,
+            editor: Editor::from_path(size.1 - 1, "src/lib.rs")?,
             mode: Mode::Normal,
             context: Context {
                 size_x: size.0,
@@ -54,7 +51,6 @@ where
     }
 
     pub fn run(&mut self) -> Result<()> {
-        enable_raw_mode()?;
         execute!(self.out, EnterAlternateScreen)?;
 
         loop {
@@ -69,7 +65,6 @@ where
         }
 
         execute!(self.out, LeaveAlternateScreen)?;
-        disable_raw_mode()?;
 
         Ok(())
     }
@@ -91,20 +86,19 @@ where
                             'j' => self.editor.move_cursor(0, 1)?,
                             'k' => self.editor.move_cursor(0, -1)?,
                             'q' => self.close = true,
+                            'i' => self.mode = Mode::Editing,
                             _ => {}
                         }
                     }
                 }
                 Mode::EnteringCommand(command) => match key.code {
                     KeyCode::Esc => self.mode = Mode::Normal,
-                    KeyCode::Char(c) => {
-                        command.push(c);
-                    }
+                    KeyCode::Char(c) => command.push(c),
                     _ => {}
                 },
                 Mode::Editing => match key.code {
                     KeyCode::Esc => self.mode = Mode::Normal,
-                    KeyCode::Char(c) => {}
+                    KeyCode::Char(c) => self.editor.insert_char(c)?,
                     _ => {}
                 },
             }
@@ -112,7 +106,7 @@ where
             self.context.set_size((x, y));
             self.editor.set_size(y - 1);
         }
-        self.cursor.update(&self.context)?;
+        self.editor.update(&self.context)?;
         Ok(())
     }
 
@@ -120,8 +114,7 @@ where
         if self.editor.is_dirty() {
             queue!(self.out, cursor::MoveTo(0, 0))?;
 
-            // print each line of the buffer
-            for i in 0..self.context.size_x - 1 {
+            for i in 0..self.context.size_y - 1 {
                 if let Some(line) = self.editor.get_line(i) {
                     queue!(self.out, style::Print(line), cursor::MoveToColumn(0))?;
                 }
@@ -129,11 +122,19 @@ where
             self.editor.clean();
         }
 
+        let cursor_pos = self.editor.get_cursor_pos();
         queue!(
             self.out,
             cursor::MoveTo(0, self.context.size_x),
             terminal::Clear(ClearType::CurrentLine),
-            style::Print(format!(" {}", self.mode.into_string())),
+            style::Print(format!(
+                " {} index: {}, x: {}, y: {}, line: {}",
+                self.mode.into_string(),
+                self.editor.cursor_idx(),
+                cursor_pos.0,
+                cursor_pos.1,
+                self.editor.get_cursor_line_idx(),
+            )),
         )?;
 
         Ok(())
@@ -178,38 +179,5 @@ impl Mode {
             Mode::EnteringCommand(s) => format!("NOR :{}", s.clone()),
             Mode::Editing => "INS".to_string(),
         }
-    }
-}
-
-struct Cursor {
-    index: u16,
-}
-
-impl Cursor {
-    fn new(x: u16, y: u16) -> Cursor {}
-
-    fn get_pos(&self) -> (u16, u16) {
-        (self.x, self.y)
-    }
-
-    fn update(&mut self, context: &Context) -> Result<()> {
-        if self.x > context.size_x {
-            self.x = context.size_x;
-        }
-        if self.y > context.size_y {
-            self.y = context.size_y;
-        }
-        self.justify(context)?;
-        Ok(())
-    }
-
-    fn justify(&mut self, context: &Context) -> Result<()> {
-        Ok(())
-    }
-
-    fn move_position(&mut self, move_x: i16, move_y: i16) -> Result<()> {
-        self.x = self.x.saturating_add_signed(move_x);
-        self.y = self.y.saturating_add_signed(move_y);
-        Ok(())
     }
 }

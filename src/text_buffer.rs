@@ -9,6 +9,8 @@ use ropey::{
     Rope, RopeSlice,
 };
 
+use crossterm::Result;
+
 pub struct TextBuffer {
     pub text: Rope,
     path: Option<PathBuf>,
@@ -24,7 +26,7 @@ impl TextBuffer {
         }
     }
 
-    pub fn from_path(path: &str) -> Result<TextBuffer, Error> {
+    pub fn from_path(path: &str) -> Result<TextBuffer> {
         Ok(TextBuffer {
             text: Rope::from_reader(&mut BufReader::new(File::open(&path)?))?,
             path: Some(PathBuf::from(path.to_string())),
@@ -32,8 +34,8 @@ impl TextBuffer {
         })
     }
 
-    pub fn get_line(&self, idx: usize) -> RopeSlice {
-        self.text.line(idx)
+    pub fn get_line(&self, idx: usize) -> Option<RopeSlice> {
+        self.text.get_line(idx)
     }
 
     pub fn bytes(&self) -> Bytes {
@@ -61,6 +63,10 @@ impl TextBuffer {
     }
 
     pub fn line(&self, line_idx: usize) -> RopeSlice<'_> {
-        self.line(line_idx)
+        self.text.line(line_idx)
+    }
+
+    pub fn edit(&mut self, index: u16) -> Result<()> {
+        Ok(())
     }
 }
