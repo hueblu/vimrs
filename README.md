@@ -1,3 +1,5 @@
 # rusty-editor
 
-small editor, don't really worry about it
+Small, modal editor written in Rust. Inspired by helix editor, but not nearly as good.
+
+# Goals
