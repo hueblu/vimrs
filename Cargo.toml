@@ -1,8 +1,14 @@
 [package]
-name = "rusty-editor"
+name = "vimrs"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 crossterm = "0.25"
 ropey = "1.5"
+chrono = "0.4"
+anyhow = "1"
+
+# logging
+fern = "0.6"
+log = "0.4"

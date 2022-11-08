@@ -1,16 +1,15 @@
-use crossterm::{
-    terminal::{disable_raw_mode, enable_raw_mode},
-    Result,
-};
-use std::io::stdout;
+use anyhow::Result;
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
-use rusty_editor::App;
+use vimrs::{util::setup_logger, App};
 
 fn main() -> Result<()> {
+    setup_logger(2)?;
     enable_raw_mode()?;
-    let mut stdout = stdout();
-    let mut app = App::new(&mut stdout)?;
-    app.run()?;
+
+    App::new(&mut std::io::stdout())?.run()?;
+
     disable_raw_mode()?;
+
     Ok(())
 }

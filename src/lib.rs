@@ -1,15 +1,16 @@
 //! editor
 mod editor;
 mod text_buffer;
+pub mod util;
 
 use editor::*;
 
+use anyhow::Result;
 use crossterm::{
     cursor,
     event::{self, Event, KeyCode},
     execute, queue, style,
     terminal::{self, size, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
-    Result,
 };
 
 /// Main struct that represents the editor.
@@ -25,7 +26,7 @@ pub struct App<'w, W> {
     close: bool,
     editor: Editor,
     mode: Mode,
-    context: Context,
+    context: AppContext,
     out: &'w mut W,
 }
 
@@ -38,11 +39,12 @@ where
     pub fn new(out: &'w mut W) -> Result<App<'w, W>> {
         let size = size()?;
 
+        log::info!("new app created");
         Ok(App {
             close: false,
             editor: Editor::from_path(size.1 - 1, "src/lib.rs")?,
             mode: Mode::Normal,
-            context: Context {
+            context: AppContext {
                 size_x: size.0,
                 size_y: size.1,
             },
@@ -51,6 +53,7 @@ where
     }
 
     pub fn run(&mut self) -> Result<()> {
+        log::info!("app running");
         execute!(self.out, EnterAlternateScreen)?;
 
         loop {
@@ -70,8 +73,10 @@ where
     }
 
     fn early_update(&mut self) -> Result<()> {
-        let cursor_pos = self.editor.get_cursor_pos();
-        queue!(self.out, cursor::MoveTo(cursor_pos.0, cursor_pos.1))
+        log::trace!("app early updated");
+        let cursor_pos = self.editor.get_cursor_pos()?;
+        queue!(self.out, cursor::MoveTo(cursor_pos.0, cursor_pos.1))?;
+        Ok(())
     }
 
     fn update(&mut self, event: Event) -> Result<()> {
@@ -85,7 +90,6 @@ where
                             'l' => self.editor.move_cursor(1, 0)?,
                             'j' => self.editor.move_cursor(0, 1)?,
                             'k' => self.editor.move_cursor(0, -1)?,
-                            'q' => self.close = true,
                             'i' => self.mode = Mode::Editing,
                             _ => {}
                         }
@@ -107,6 +111,7 @@ where
             self.editor.set_size(y - 1);
         }
         self.editor.update(&self.context)?;
+        log::trace!("app updated");
         Ok(())
     }
 
@@ -115,25 +120,26 @@ where
             queue!(self.out, cursor::MoveTo(0, 0))?;
 
             for i in 0..self.context.size_y - 1 {
-                if let Some(line) = self.editor.get_line(i) {
-                    queue!(self.out, style::Print(line), cursor::MoveToColumn(0))?;
-                }
+                let line = self.editor.get_line(i)?;
+                queue!(self.out, style::Print(line), cursor::MoveToColumn(0))?;
             }
-            self.editor.clean();
+            self.editor.clean()?;
         }
 
-        let cursor_pos = self.editor.get_cursor_pos();
+        let mode = self.mode.into_string()?;
+        let cursor_pos = self.editor.get_cursor_pos()?;
+        let cursor_line = self.editor.get_cursor_line_idx()?;
         queue!(
             self.out,
             cursor::MoveTo(0, self.context.size_x),
             terminal::Clear(ClearType::CurrentLine),
             style::Print(format!(
                 " {} index: {}, x: {}, y: {}, line: {}",
-                self.mode.into_string(),
+                mode,
                 self.editor.cursor_idx(),
                 cursor_pos.0,
                 cursor_pos.1,
-                self.editor.get_cursor_line_idx(),
+                cursor_line,
             )),
         )?;
 
@@ -149,12 +155,12 @@ where
     }
 }
 
-struct Context {
+struct AppContext {
     size_x: u16,
     size_y: u16,
 }
 
-impl Context {
+impl AppContext {
     fn get_size(&self) -> (u16, u16) {
         (self.size_x, self.size_y)
     }
@@ -173,11 +179,11 @@ enum Mode {
 }
 
 impl Mode {
-    fn into_string(&self) -> String {
-        match self {
+    fn into_string(&self) -> Result<String> {
+        Ok(match self {
             Mode::Normal => "NOR".to_string(),
             Mode::EnteringCommand(s) => format!("NOR :{}", s.clone()),
             Mode::Editing => "INS".to_string(),
-        }
+        })
     }
 }

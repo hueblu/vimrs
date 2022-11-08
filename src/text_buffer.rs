@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 
 use std::fs::File;
-use std::io::{BufReader, Error};
+use std::io::BufReader;
 use std::path::PathBuf;
 
+use anyhow::Result;
 use ropey::{
     iter::{Bytes, Chars, Chunks, Lines},
     Rope, RopeSlice,
 };
-
-use crossterm::Result;
 
 pub struct TextBuffer {
     pub text: Rope,
@@ -18,12 +17,12 @@ pub struct TextBuffer {
 }
 
 impl TextBuffer {
-    pub fn new() -> TextBuffer {
-        TextBuffer {
+    pub fn new() -> Result<TextBuffer> {
+        Ok(TextBuffer {
             text: Rope::new(),
             path: None,
             dirty: false,
-        }
+        })
     }
 
     pub fn from_path(path: &str) -> Result<TextBuffer> {
