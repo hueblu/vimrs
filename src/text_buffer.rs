@@ -65,7 +65,20 @@ impl TextBuffer {
         self.text.line(line_idx)
     }
 
-    pub fn edit(&mut self, index: u16) -> Result<()> {
+    pub fn write(&mut self) -> Result<()> {
+        if let Some(p) = &self.path {
+            let file = std::fs::File::create(p)?;
+            self.text.write_to(file)?;
+            self.dirty = false;
+            log::info!("wrote buffer to file");
+        } else {
+            log::info!("tried to write buffer to file, but path not found");
+        }
+        Ok(())
+    }
+
+    pub fn edit(&mut self, _index: u16) -> Result<()> {
+        self.dirty = true;
         Ok(())
     }
 }

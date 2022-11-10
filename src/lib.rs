@@ -1,8 +1,12 @@
+#![allow(dead_code)]
+
 //! editor
+mod commands;
 mod editor;
 mod text_buffer;
 pub mod util;
 
+use commands::*;
 use editor::*;
 
 use anyhow::Result;
@@ -24,6 +28,7 @@ use crossterm::{
 /// [`run`]: App::run
 pub struct App<'w, W> {
     close: bool,
+    commands: CommandList,
     editor: Editor,
     mode: Mode,
     context: AppContext,
@@ -42,6 +47,7 @@ where
         log::info!("new app created");
         Ok(App {
             close: false,
+            commands: CommandList::new()?,
             editor: Editor::from_path(size.1 - 1, "src/lib.rs")?,
             mode: Mode::Normal,
             context: AppContext {
@@ -98,6 +104,10 @@ where
                 Mode::EnteringCommand(command) => match key.code {
                     KeyCode::Esc => self.mode = Mode::Normal,
                     KeyCode::Char(c) => command.push(c),
+                    KeyCode::Enter => {
+                        self.commands.execute(command.clone(), &self.editor)?;
+                        self.mode = Mode::Normal;
+                    }
                     _ => {}
                 },
                 Mode::Editing => match key.code {
@@ -150,7 +160,7 @@ where
         Ok(())
     }
 
-    fn run_command(&mut self, command: String) -> Result<()> {
+    fn run_command(&mut self, _command: String) -> Result<()> {
         Ok(())
     }
 }
